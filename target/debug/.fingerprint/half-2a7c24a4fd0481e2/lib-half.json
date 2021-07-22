@@ -1,0 +1,1 @@
+{"rustc":10101630539669535287,"features":"[]","target":15652716680274208097,"profile":6299028598154287785,"path":16045212350803142560,"deps":[],"local":[{"CheckDepInfo":{"dep_info":"debug/.fingerprint/half-2a7c24a4fd0481e2/dep-lib-half"}}],"rustflags":["-C","target-feature=+aes,+ssse3,+avx2","-C","target-cpu=native"],"metadata":576232026459312637,"config":0}

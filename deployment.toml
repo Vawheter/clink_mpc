@@ -1,0 +1,24 @@
+# [[cells]]
+# name = "single_verifier"
+# enable_type_id = false
+# location = { file = "build/release/single_verifier" }
+
+# [[cells]]
+# name = "multiple_verifier"
+# enable_type_id = false
+# location = { file = "build/release/multiple_verifier" }
+
+# Dep group cells
+# [[dep_groups]]
+# name = "my_dep_group"
+# cells = [
+#   "ckb-zkp",
+#   "secp256k1_data"
+# ]
+
+# Replace with your own lock if you want to unlock deployed cells.
+# The deployment code_hash is secp256k1 lock
+# [lock]
+# code_hash = "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8"
+# args = "0xc69f1b858f3cc819ed5efe52f6233cbf99198f92"
+# hash_type = "type"

@@ -1,0 +1,24 @@
+TARGET = Some("x86_64-unknown-linux-gnu")
+OPT_LEVEL = Some("3")
+HOST = Some("x86_64-unknown-linux-gnu")
+CC_x86_64-unknown-linux-gnu = None
+CC_x86_64_unknown_linux_gnu = None
+HOST_CC = None
+CC = None
+CFLAGS_x86_64-unknown-linux-gnu = None
+CFLAGS_x86_64_unknown_linux_gnu = None
+HOST_CFLAGS = None
+CFLAGS = None
+CRATE_CC_NO_DEFAULTS = None
+DEBUG = Some("true")
+CARGO_CFG_TARGET_FEATURE = Some("adx,aes,avx,avx2,bmi1,bmi2,cmpxchg16b,f16c,fma,fxsr,lzcnt,mmx,movbe,pclmulqdq,popcnt,rdrand,rdseed,sse,sse2,sse3,sse4.1,sse4.2,ssse3,xsave,xsaveopt")
+running: "cc" "-O3" "-ffunction-sections" "-fdata-sections" "-fPIC" "-g" "-fno-omit-frame-pointer" "-m64" "-Wall" "-Wextra" "-maes" "-msse4.1" "-o" "/home/liyun/clink/zkp_test/ckb-zkp/target/debug/build/ocelot-0e8456edf91a9496/out/cbits/transpose.o" "-c" "cbits/transpose.c"
+exit code: 0
+AR_x86_64-unknown-linux-gnu = None
+AR_x86_64_unknown_linux_gnu = None
+HOST_AR = None
+AR = None
+running: "ar" "crs" "/home/liyun/clink/zkp_test/ckb-zkp/target/debug/build/ocelot-0e8456edf91a9496/out/libtranspose.a" "/home/liyun/clink/zkp_test/ckb-zkp/target/debug/build/ocelot-0e8456edf91a9496/out/cbits/transpose.o"
+exit code: 0
+cargo:rustc-link-lib=static=transpose
+cargo:rustc-link-search=native=/home/liyun/clink/zkp_test/ckb-zkp/target/debug/build/ocelot-0e8456edf91a9496/out

@@ -1,0 +1,1 @@
+{"rustc":10101630539669535287,"features":"[]","target":15001938690538818112,"profile":6299028598154287785,"path":10437676672713568238,"deps":[],"local":[{"CheckDepInfo":{"dep_info":"debug/.fingerprint/semver-parser-c3d0fd83dabff254/dep-lib-semver-parser"}}],"rustflags":["-C","target-feature=+aes,+ssse3,+avx2","-C","target-cpu=native"],"metadata":4674865660837498837,"config":0}

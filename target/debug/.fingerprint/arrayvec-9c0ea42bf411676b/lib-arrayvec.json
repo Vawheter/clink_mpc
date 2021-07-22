@@ -1,0 +1,1 @@
+{"rustc":10101630539669535287,"features":"[]","target":4004654919687799417,"profile":6299028598154287785,"path":2668465122232656238,"deps":[],"local":[{"CheckDepInfo":{"dep_info":"debug/.fingerprint/arrayvec-9c0ea42bf411676b/dep-lib-arrayvec"}}],"rustflags":["-C","target-feature=+aes,+ssse3,+avx2","-C","target-cpu=native"],"metadata":5019420986621020735,"config":0}

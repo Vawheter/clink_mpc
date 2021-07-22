@@ -1,0 +1,1 @@
+{"rustc":10101630539669535287,"features":"[]","target":18264860471394144449,"profile":6299028598154287785,"path":16888534071828863217,"deps":[],"local":[{"CheckDepInfo":{"dep_info":"debug/.fingerprint/postcard-cobs-ea90508e98d4763d/dep-lib-postcard-cobs"}}],"rustflags":["-C","target-feature=+aes,+ssse3,+avx2","-C","target-cpu=native"],"metadata":16117493640457338859,"config":0}

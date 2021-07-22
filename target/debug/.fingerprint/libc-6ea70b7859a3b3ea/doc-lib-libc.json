@@ -1,0 +1,1 @@
+{"rustc":10101630539669535287,"features":"[]","target":1047533068072243941,"profile":1824481581106907554,"path":9530473603475621701,"deps":[[16065926790896334425,"build_script_build",false,7466603723148482512]],"local":[{"Precalculated":"0.2.80"}],"rustflags":["-C","target-feature=+aes,+ssse3"],"metadata":14998826085014762512,"config":0}
