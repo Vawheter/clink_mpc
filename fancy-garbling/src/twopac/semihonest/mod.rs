@@ -14,24 +14,24 @@ pub use garbler::Garbler;
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::{
-        circuit::Circuit,
-        dummy::Dummy,
-        util::RngExt,
-        CrtBundle,
-        CrtGadgets,
-        Fancy,
-        FancyInput,
-    };
-    use itertools::Itertools;
+    // use super::*;
+    // use crate::{
+    //     circuit::Circuit,
+    //     dummy::Dummy,
+    //     util::RngExt,
+    //     CrtBundle,
+    //     CrtGadgets,
+    //     Fancy,
+    //     FancyInput,
+    // };
+    // use itertools::Itertools;
     // use ocelot::ot::{ChouOrlandiReceiver, ChouOrlandiSender};
-    use scuttlebutt::{unix_channel_pair, AesRng, UnixChannel};
+    // use scuttlebutt::{unix_channel_pair, AesRng, UnixChannel};
 
-    fn addition<F: Fancy>(f: &mut F, a: &F::Item, b: &F::Item) -> Result<Option<u16>, F::Error> {
-        let c = f.add(&a, &b)?;
-        f.output(&c)
-    }
+    // fn addition<F: Fancy>(f: &mut F, a: &F::Item, b: &F::Item) -> Result<Option<u16>, F::Error> {
+    //     let c = f.add(&a, &b)?;
+    //     f.output(&c)
+    // }
 
     // #[test]
     // fn test_addition_circuit() {
@@ -59,17 +59,17 @@ mod tests {
     //     }
     // }
 
-    fn relu<F: Fancy>(b: &mut F, xs: &[CrtBundle<F::Item>]) -> Option<Vec<u128>> {
-        let mut outputs = Vec::new();
-        for x in xs.iter() {
-            let q = x.composite_modulus();
-            let c = b.crt_constant_bundle(1, q).unwrap();
-            let y = b.crt_mul(&x, &c).unwrap();
-            let z = b.crt_relu(&y, "100%", None).unwrap();
-            outputs.push(b.crt_output(&z).unwrap());
-        }
-        outputs.into_iter().collect()
-    }
+    // fn relu<F: Fancy>(b: &mut F, xs: &[CrtBundle<F::Item>]) -> Option<Vec<u128>> {
+    //     let mut outputs = Vec::new();
+    //     for x in xs.iter() {
+    //         let q = x.composite_modulus();
+    //         let c = b.crt_constant_bundle(1, q).unwrap();
+    //         let y = b.crt_mul(&x, &c).unwrap();
+    //         let z = b.crt_relu(&y, "100%", None).unwrap();
+    //         outputs.push(b.crt_output(&z).unwrap());
+    //     }
+    //     outputs.into_iter().collect()
+    // }
 
     // #[test]
     // fn test_relu() {

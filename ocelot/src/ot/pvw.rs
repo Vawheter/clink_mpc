@@ -4,15 +4,11 @@ use crate::errors::Error;
 
 use curve::bn_256::{Fq, Fr, G1Affine, G1Projective};
 use curve::{UniformRand, AffineCurve, ProjectiveCurve};
-use math::{test_rng, 
-    Field, 
-    bytes:: ToBytes,
-    Zero,
-    };
+use math::Zero;
 use core::ops::{Add, Sub};
 
 use rand::{CryptoRng, Rng};
-use scuttlebutt::{AbstractChannel, Channel};
+use scuttlebutt::AbstractChannel;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PublicKey {
@@ -116,7 +112,7 @@ impl Sender {
     
         for i in 0..self.m {
             let (u0, vx0) = Sender::DDHEnc(&xs_0[i], &crs.g0, &crs.h0, &self.pks[i].g, &self.pks[i].h, &mut rng);
-            let (u1, vx1) = Sender::DDHEnc(&xs_0[i], &crs.g1, &crs.h1, &self.pks[i].g, &self.pks[i].h, &mut rng);
+            let (u1, vx1) = Sender::DDHEnc(&xs_1[i], &crs.g1, &crs.h1, &self.pks[i].g, &self.pks[i].h, &mut rng);
             us_0.push(u0);
             vxs_0.push(vx0);
             us_1.push(u1);
@@ -140,16 +136,10 @@ impl Sender {
 
         for i in 0..self.m {
             channel.write_pt(&us_0[i])?;
-
-            let mut vx0_bytes = vec![];
-            vxs_0[i].write(&mut vx0_bytes).unwrap();
-            channel.write_bytes(&vx0_bytes)?;
+            channel.write_fq(&vxs_0[i])?;
 
             channel.write_pt(&us_1[i])?;
-
-            let mut vx1_bytes = vec![];
-            vxs_1[i].write(&mut vx1_bytes).unwrap();
-            channel.write_bytes(&vx1_bytes)?;
+            channel.write_fq(&vxs_1[i])?;
         }
 
         channel.flush()?;
@@ -240,16 +230,10 @@ impl Receiver {
 
         for i in 0..self.m {
             let u0 = channel.read_pt()?;
-
-            let mut vx0_bytes = [0u8; 32];
-            channel.read_bytes(&mut vx0_bytes).unwrap();
-            let vx0 = Fq::from_random_bytes(&vx0_bytes).unwrap();
+            let vx0 = channel.read_fq()?;
 
             let u1 = channel.read_pt()?;
-
-            let mut vx1_bytes = [0u8; 32];
-            channel.read_bytes(&mut vx1_bytes).unwrap();
-            let vx1 = Fq::from_random_bytes(&vx1_bytes).unwrap();
+            let vx1 = channel.read_fq()?;
 
             if bs[i] {
                 let x1 = Receiver::Dec(&self.sks[i], &u1, &vx1);
@@ -278,10 +262,10 @@ impl std::fmt::Display for Receiver {
 // impl Malicious for Receiver {}
 
 
-use std::{
-    io::{BufReader, BufWriter},
-    os::unix::net::UnixStream,
-};
+// use std::{
+//     io::{BufReader, BufWriter},
+//     os::unix::net::UnixStream,
+// };
 
 // #[test]
 // fn test_pvw_ot() 

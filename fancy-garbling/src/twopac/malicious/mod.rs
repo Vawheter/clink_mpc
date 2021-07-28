@@ -1,1 +1,1 @@
-pub mod cot_sender;
+pub mod cot;
