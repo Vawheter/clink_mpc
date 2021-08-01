@@ -3,7 +3,7 @@
 use crate::errors::Error;
 
 use curve::bn_256::{Fq, Fr, G1Affine, G1Projective};
-use curve::{UniformRand, AffineCurve, ProjectiveCurve};
+use curve::{Field, UniformRand, AffineCurve, ProjectiveCurve, ToBytes};
 use math::Zero;
 use core::ops::{Add, Sub};
 
@@ -86,7 +86,7 @@ impl Sender {
 
     
     fn DDHEnc<RNG: CryptoRng + Rng>(
-        x: &Fq,
+        x: &Fr,
         g: &G1Affine,
         h: &G1Affine,
         g_star: &G1Affine,
@@ -94,14 +94,19 @@ impl Sender {
         rng: &mut RNG,
     ) -> (G1Affine, Fq) {
         let (u, v) = Sender::Randomize(g, h, g_star, h_star, rng);
-        let vx = v.x.add(x);
+
+        let mut fr_bytes = vec![];
+        x.write(&mut fr_bytes).unwrap();
+        let x_fq = Fq::from_random_bytes(&fr_bytes).unwrap();
+
+        let vx = v.x.add(x_fq);
         (u, vx)
     }
 
     fn Enc<RNG: CryptoRng + Rng>(
         &mut self,
-        xs_0: &Vec<Fq>,
-        xs_1: &Vec<Fq>,
+        xs_0: &Vec<Fr>,
+        xs_1: &Vec<Fr>,
         crs: &CRS,
         mut rng: &mut RNG,   
     ) -> (Vec<G1Affine>, Vec<Fq>, Vec<G1Affine>, Vec<Fq>) {
@@ -126,8 +131,8 @@ impl Sender {
     pub fn send<C: AbstractChannel, RNG: CryptoRng + Rng>(
         &mut self,
         channel: &mut C,
-        xs_0: &Vec<Fq>,
-        xs_1: &Vec<Fq>,
+        xs_0: &Vec<Fr>,
+        xs_1: &Vec<Fr>,
         crs: &CRS,
         rng: &mut RNG,
     ) -> Result<(), Error> {
@@ -215,8 +220,14 @@ impl Receiver {
         sk: &SecretKey,
         c0: &G1Affine,
         c1: &Fq,
-    ) -> Fq {
-        c1.sub(c0.mul(*sk).into_affine().x)
+    ) -> Result<Fr, Error> {
+        let x = c1.sub(c0.mul(*sk).into_affine().x);
+
+        let mut fq_bytes = vec![];
+        x.write(&mut fq_bytes).unwrap();
+        let x_fr = Fr::from_random_bytes(&fq_bytes).unwrap();
+        
+        Ok(x_fr)
     } 
 
 
@@ -224,9 +235,9 @@ impl Receiver {
         &mut self,
         channel: &mut C,
         bs: &Vec<bool>,
-    ) -> Result<Vec<Fq>, Error> {
+    ) -> Result<Vec<Fr>, Error> {
 
-        let mut xs_b:Vec<Fq> = vec![];
+        let mut xs_b:Vec<Fr> = vec![];
 
         for i in 0..self.m {
             let u0 = channel.read_pt()?;
@@ -236,10 +247,10 @@ impl Receiver {
             let vx1 = channel.read_fq()?;
 
             if bs[i] {
-                let x1 = Receiver::Dec(&self.sks[i], &u1, &vx1);
+                let x1 = Receiver::Dec(&self.sks[i], &u1, &vx1).unwrap();
                 xs_b.push(x1);
             } else {
-                let x0 = Receiver::Dec(&self.sks[i], &u0, &vx0);
+                let x0 = Receiver::Dec(&self.sks[i], &u0, &vx0).unwrap();
                 xs_b.push(x0);
             }
         }

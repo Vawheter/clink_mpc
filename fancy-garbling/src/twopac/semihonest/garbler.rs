@@ -157,4 +157,4 @@ impl<C: AbstractChannel, RNG: CryptoRng + Rng, OT> FancyReveal for Garbler<C, RN
     }
 }
 
-impl<C, RNG, OT> SemiHonest for Garbler<C, RNG, OT> {}
+// impl<C, RNG, OT> SemiHonest for Garbler<C, RNG, OT> {}

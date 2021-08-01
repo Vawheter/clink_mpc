@@ -21,7 +21,7 @@ use crate::{Block, Block512};
 // #[cfg(feature = "curve25519-dalek")]
 // use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 
-use curve::bn_256::{G1Affine, Fq};
+use curve::bn_256::{G1Affine, Fq, Fr};
 use curve::{Field, FromBytes};
 use math::ToBytes;
 
@@ -230,6 +230,22 @@ pub trait AbstractChannel {
         self.read_bytes(&mut data).unwrap();
         let pt = G1Affine::read(&data[..]).unwrap();
         Ok(pt)
+    }
+
+    #[inline(always)]
+    fn write_fr(&mut self, fr: &Fr) -> Result<()> {
+        let mut fr_bytes = vec![];
+        fr.write(&mut fr_bytes).unwrap();
+        self.write_bytes(&fr_bytes)?;
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn read_fr(&mut self) -> Result<Fr> {
+        let mut fr_bytes = [0u8; 32];
+        self.read_bytes(&mut fr_bytes).unwrap();
+        let fr = Fr::from_random_bytes(&fr_bytes).unwrap();
+        Ok(fr)
     }
 
     #[inline(always)]
