@@ -10,11 +10,8 @@ use fancy_garbling::{
     FancyInput,
 };
 // use ocelot::ot::{AlszReceiver as OtReceiver, AlszSender as OtSender};
-use ocelot::ot::pvw::{Sender as OtSender, Receiver as OtReceiver};
 use scuttlebutt::{unix_channel_pair, AesRng, UnixChannel};
 use std::time::SystemTime;
-
-use math
 
 fn circuit(fname: &str) -> Circuit {
     println!("* Circuit: {}", fname);
@@ -30,7 +27,7 @@ fn run_circuit(circ: &mut Circuit, gb_inputs: Vec<u16>, ev_inputs: Vec<u16>) {
     let handle = std::thread::spawn(move || {
         let rng = AesRng::new();
         let start = SystemTime::now();
-        let mut gb = Garbler::<UnixChannel, AesRng, OtSender>::new(sender, rng).unwrap();
+        let mut gb = Garbler::<UnixChannel, AesRng>::new(sender, rng).unwrap();
         println!("Garbler :: Initialization: {} ms", start.elapsed().unwrap().as_millis());
         let start = SystemTime::now();
         let xs = gb.encode_many(&gb_inputs, &vec![2; n_gb_inputs]).unwrap();
@@ -42,7 +39,7 @@ fn run_circuit(circ: &mut Circuit, gb_inputs: Vec<u16>, ev_inputs: Vec<u16>) {
     });
     let rng = AesRng::new();
     let start = SystemTime::now();
-    let mut ev = Evaluator::<UnixChannel, AesRng, OtReceiver>::new(receiver, rng).unwrap();
+    let mut ev = Evaluator::<UnixChannel, AesRng>::new(receiver, rng).unwrap();
     println!("Evaluator :: Initialization: {} ms", start.elapsed().unwrap().as_millis());
     let start = SystemTime::now();
     let xs = ev.receive_many(&vec![2; n_gb_inputs]).unwrap();

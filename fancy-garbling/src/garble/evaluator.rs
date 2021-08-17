@@ -12,6 +12,10 @@ use crate::{
 };
 use scuttlebutt::AbstractChannel;
 
+use curve::bn_256::Fr;
+use core::ops::{Add, Sub, Mul, AddAssign, MulAssign, SubAssign, Neg};
+// use math::PrimeField;
+
 /// Streaming evaluator using a callback to receive ciphertexts as needed.
 ///
 /// Evaluates a garbled circuit on the fly, using messages containing ciphertexts and
@@ -48,8 +52,8 @@ impl<C: AbstractChannel> Evaluator<C> {
 
     /// Read a Wire from the reader.
     pub fn read_wire(&mut self, modulus: u16) -> Result<Wire, EvaluatorError> {
-        let block = self.channel.read_block()?;
-        Ok(Wire::from_block(block, modulus))
+        let block = self.channel.read_fr()?;
+        Ok(Wire::from_fr(block, modulus))
     }
 }
 
@@ -99,38 +103,40 @@ impl<C: AbstractChannel> Fancy for Evaluator<C> {
         let mut gate = Vec::with_capacity(ngates);
         {
             for _ in 0..ngates {
-                let block = self.channel.read_block()?;
+                let block = self.channel.read_fr()?;
                 gate.push(block);
             }
         }
         let gate_num = self.current_gate();
-        let g = tweak2(gate_num as u64, 0);
+        // let g = tweak2(gate_num as u64, 0);
+        let g = Fr::from(gate_num as u64);
 
         // garbler's half gate
         let L = if A.color() == 0 {
-            A.hashback(g, q)
+            A.hashback(&g, q)
         } else {
             let ct_left = gate[A.color() as usize - 1];
-            Wire::from_block(ct_left ^ A.hash(g), q)
+            Wire::from_fr(Fr::from(ct_left.add(A.hash(&g))), q)
         };
 
         // evaluator's half gate
         let R = if B.color() == 0 {
-            B.hashback(g, q)
+            B.hashback(&g, q)
         } else {
             let ct_right = gate[(q + B.color()) as usize - 2];
-            Wire::from_block(ct_right ^ B.hash(g), q)
+            Wire::from_fr(ct_right.add(B.hash(&g)), q)
         };
 
         // hack for unequal mods
-        let new_b_color = if unequal {
-            let minitable = *gate.last().unwrap();
-            let ct = u128::from(minitable) >> (B.color() * 16);
-            let pt = u128::from(B.hash(tweak2(gate_num as u64, 1))) ^ ct;
-            pt as u16
-        } else {
-            B.color()
-        };
+        // let new_b_color = if unequal {
+        //     let minitable = *gate.last().unwrap();
+        //     let ct = u128::from(minitable) >> (B.color() * 16);
+        //     let pt = u128::from(B.hash(tweak2(gate_num as u64, 1))) ^ ct;
+        //     pt as u16
+        // } else {
+        //     B.color()
+        // };
+        let new_b_color = B.color();
 
         let res = L.plus_mov(&R.plus_mov(&A.cmul(new_b_color)));
         Ok(res)
@@ -140,15 +146,17 @@ impl<C: AbstractChannel> Fancy for Evaluator<C> {
         let ngates = (x.modulus() - 1) as usize;
         let mut gate = Vec::with_capacity(ngates);
         for _ in 0..ngates {
-            let block = self.channel.read_block()?;
+            let block = self.channel.read_fr()?;
             gate.push(block);
         }
-        let t = tweak(self.current_gate());
+        // let t = tweak(self.current_gate());
+        let t = Fr::from(self.current_gate() as u64);
+        
         if x.color() == 0 {
-            Ok(x.hashback(t, q))
+            Ok(x.hashback(&t, q))
         } else {
             let ct = gate[x.color() as usize - 1];
-            Ok(Wire::from_block(ct ^ x.hash(t), q))
+            Ok(Wire::from_fr(ct.add(x.hash(&Fr::from(t))), q))
         }
     }
 
@@ -157,12 +165,13 @@ impl<C: AbstractChannel> Fancy for Evaluator<C> {
         let i = self.current_output();
 
         // Receive the output ciphertext from the garbler
-        let ct = self.channel.read_blocks(q as usize)?;
+        let ct = self.channel.read_frs(q as usize)?;
 
         // Attempt to brute force x using the output ciphertext
         let mut decoded = None;
         for k in 0..q {
-            let hashed_wire = x.hash(output_tweak(i, k));
+            let tmp = Fr::from(i as u64).add(Fr::from(k as u64));
+            let hashed_wire = x.hash(&tmp);
             if hashed_wire == ct[k as usize] {
                 decoded = Some(k);
                 break;

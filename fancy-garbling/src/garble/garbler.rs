@@ -14,6 +14,10 @@ use rand::{CryptoRng, RngCore};
 use scuttlebutt::{AbstractChannel, Block};
 use std::collections::HashMap;
 
+use core::ops::{Add, Sub, Mul, AddAssign, MulAssign, SubAssign, Neg};
+use curve::bn_256::Fr;
+use curve::Zero;
+
 /// Streams garbled circuit ciphertexts through a callback.
 pub struct Garbler<C, RNG> {
     channel: C,
@@ -79,8 +83,12 @@ impl<C: AbstractChannel, RNG: CryptoRng + RngCore> Garbler<C, RNG> {
 
     /// Send a wire over the established channel.
     pub fn send_wire(&mut self, wire: &Wire) -> Result<(), GarblerError> {
-        self.channel.write_block(&wire.as_block())?;
-        Ok(())
+        Ok(self.channel.write_fr(&wire.as_fr())?)
+        // match wire {
+        //     Wire::Mod2 { val } => { Ok(self.channel.write_fr(&val)?)}
+        //     Wire::Mod3 { .. } => { Ok(()) }
+        //     Wire::ModN { .. } => { Ok(()) }
+        // }
     }
 
     /// Encode a wire, producing the zero wire as well as the encoded value.
@@ -188,64 +196,73 @@ impl<C: AbstractChannel, RNG: RngCore + CryptoRng> Fancy for Garbler<C, RNG> {
         let D = self.delta(q);
         let Db = self.delta(qb);
 
-        let r;
-        let mut gate = vec![Block::default(); q as usize + qb as usize - 2];
+        let r = B.color();
+        // let mut gate = vec![Block::default(); q as usize + qb as usize - 2];
+        let mut gate = vec![Wire::default(); q as usize + qb as usize - 2];
 
-        // hack for unequal moduli
-        if q != qb {
-            // would need to pack minitable into more than one u128 to support qb > 8
-            if qb > 8 {
-                return Err(GarblerError::AsymmetricHalfGateModuliMax8(qb));
-            }
+        // // hack for unequal moduli
+        // if q != qb {
+        //     // would need to pack minitable into more than one u128 to support qb > 8
+        //     if qb > 8 {
+        //         return Err(GarblerError::AsymmetricHalfGateModuliMax8(qb));
+        //     }
 
-            r = self.rng.gen_u16() % q;
-            let t = tweak2(gate_num as u64, 1);
+        //     r = self.rng.gen_u16() % q;
+        //     let t = tweak2(gate_num as u64, 1);
 
-            let mut minitable = vec![u128::default(); qb as usize];
-            let mut B_ = B.clone();
-            for b in 0..qb {
-                if b > 0 {
-                    B_.plus_eq(&Db);
-                }
-                let new_color = ((r + b) % q) as u128;
-                let ct = (u128::from(B_.hash(t)) & 0xFFFF) ^ new_color;
-                minitable[B_.color() as usize] = ct;
-            }
+        //     let mut minitable = vec![u128::default(); qb as usize];
+        //     let mut B_ = B.clone();
+        //     for b in 0..qb {
+        //         if b > 0 {
+        //             B_.plus_eq(&Db);
+        //         }
+        //         let new_color = ((r + b) % q) as u128;
+        //         let ct = (u128::from(B_.hash(t)) & 0xFFFF) ^ new_color;
+        //         minitable[B_.color() as usize] = ct;
+        //     }
 
-            let mut packed = 0;
-            for i in 0..qb as usize {
-                packed += minitable[i] << (16 * i);
-            }
-            gate.push(Block::from(packed));
-        } else {
-            r = B.color(); // secret value known only to the garbler (ev knows r+b)
-        }
+        //     let mut packed = 0;
+        //     for i in 0..qb as usize {
+        //         packed += minitable[i] << (16 * i);
+        //     }
+        //     // gate.push(Block::from(packed));
+        //     gate.push(Fr::from(packed));
+        // } else {
+        //    r = B.color(); // secret value known only to the garbler (ev knows r+b)
+        // }
 
-        let g = tweak2(gate_num as u64, 0);
+        // let g = tweak2(gate_num as u64, 0);
+        let g = Fr::from(gate_num as u64);
 
         // X = H(A+aD) + arD such that a + A.color == 0
         let alpha = (q - A.color()) % q; // alpha = -A.color
         let X = A
             .plus(&D.cmul(alpha))
-            .hashback(g, q)
+            .hashback(&g, q)
             .plus_mov(&D.cmul(alpha * r % q));
 
         // Y = H(B + bD) + (b + r)A such that b + B.color == 0
         let beta = (qb - B.color()) % qb;
         let Y = B
             .plus(&Db.cmul(beta))
-            .hashback(g, q)
+            .hashback(&g, q)
             .plus_mov(&A.cmul((beta + r) % q));
 
         let mut precomp = Vec::with_capacity(q as usize);
 
         // precompute a lookup table of X.minus(&D_cmul[(a * r % q)])
         //                            = X.plus(&D_cmul[((q - (a * r % q)) % q)])
+        // let mut X_ = X.clone();
         let mut X_ = X.clone();
-        precomp.push(X_.as_block());
+
+        // precomp.push(X_.as_block());
+
+        precomp.push(X.clone());
+
         for _ in 1..q {
             X_.plus_eq(&D);
-            precomp.push(X_.as_block());
+            // precomp.push(X_.as_block());
+            precomp.push(X_.clone());
         }
 
         let mut A_ = A.clone();
@@ -257,7 +274,7 @@ impl<C: AbstractChannel, RNG: RngCore + CryptoRng> Fancy for Garbler<C, RNG> {
             // G = H(A+aD) ^ X+a(-r)D = H(A+aD) ^ X-arD
             if A_.color() != 0 {
                 gate[A_.color() as usize - 1] =
-                    A_.hash(g) ^ precomp[((q - (a * r % q)) % q) as usize];
+                    Wire::from_fr(A_.hash(&g),2).plus(&precomp[((q - (a * r % q)) % q) as usize]);
             }
         }
 
@@ -266,10 +283,12 @@ impl<C: AbstractChannel, RNG: RngCore + CryptoRng> Fancy for Garbler<C, RNG> {
         // precompute a lookup table of Y.minus(&A_cmul[((b+r) % q)])
         //                            = Y.plus(&A_cmul[((q - ((b+r) % q)) % q)])
         let mut Y_ = Y.clone();
-        precomp.push(Y_.as_block());
+        // precomp.push(Y_.as_block());
+        precomp.push(Y.clone());
         for _ in 1..q {
             Y_.plus_eq(&A);
-            precomp.push(Y_.as_block());
+            // precomp.push(Y_.as_block());
+            precomp.push(Y_.clone());
         }
 
         let mut B_ = B.clone();
@@ -281,12 +300,12 @@ impl<C: AbstractChannel, RNG: RngCore + CryptoRng> Fancy for Garbler<C, RNG> {
             // G = H(B+bD) + Y-(b+r)A
             if B_.color() != 0 {
                 gate[q as usize - 1 + B_.color() as usize - 1] =
-                    B_.hash(g) ^ precomp[((q - ((b + r) % q)) % q) as usize];
+                    Wire::from_fr(B_.hash(&g), 2).plus(&precomp[((q - ((b + r) % q)) % q) as usize]);
             }
         }
 
         for block in gate.iter() {
-            self.channel.write_block(block)?;
+            self.channel.write_fr(&block.as_fr())?;
         }
         Ok(X.plus_mov(&Y))
     }
@@ -295,10 +314,12 @@ impl<C: AbstractChannel, RNG: RngCore + CryptoRng> Fancy for Garbler<C, RNG> {
         let tt = tt.ok_or(GarblerError::TruthTableRequired)?;
 
         let q_in = A.modulus();
-        let mut gate = vec![Block::default(); q_in as usize - 1];
+        // let mut gate = vec![Block::default(); q_in as usize - 1];
+        let mut gate = vec![Wire::default(); q_in as usize - 1];
 
         let tao = A.color();
-        let g = tweak(self.current_gate());
+        // let g = tweak(self.current_gate());
+        let g = Fr::from(self.current_gate() as u64);
 
         let Din = self.delta(q_in);
         let Dout = self.delta(q_out);
@@ -307,7 +328,7 @@ impl<C: AbstractChannel, RNG: RngCore + CryptoRng> Fancy for Garbler<C, RNG> {
         // W_g^0 <- -H(g, W_{a_1}^0 - \tao\Delta_m) - \phi(-\tao)\Delta_n
         let C = A
             .plus(&Din.cmul((q_in - tao) % q_in))
-            .hashback(g, q_out)
+            .hashback(&g, q_out)
             .plus_mov(&Dout.cmul((q_out - tt[((q_in - tao) % q_in) as usize]) % q_out));
 
         // precompute `let C_ = C.plus(&Dout.cmul(tt[x as usize]))`
@@ -318,9 +339,9 @@ impl<C: AbstractChannel, RNG: RngCore + CryptoRng> Fancy for Garbler<C, RNG> {
                     if x > 0 {
                         C_.plus_eq(&Dout);
                     }
-                    C_.as_block()
+                    C_.clone()
                 })
-                .collect::<Vec<Block>>()
+                .collect::<Vec<_>>()
         };
 
         let mut A_ = A.clone();
@@ -334,12 +355,12 @@ impl<C: AbstractChannel, RNG: RngCore + CryptoRng> Fancy for Garbler<C, RNG> {
                 continue;
             }
 
-            let ct = A_.hash(g) ^ C_precomputed[tt[x as usize] as usize];
+            let ct = Wire::from_fr(A_.hash(&g), 2).plus(&C_precomputed[tt[x as usize] as usize]);
             gate[ix - 1] = ct;
         }
 
         for block in gate.iter() {
-            self.channel.write_block(block)?;
+            self.channel.write_fr(&block.as_fr())?;
         }
         Ok(C)
     }
@@ -349,8 +370,9 @@ impl<C: AbstractChannel, RNG: RngCore + CryptoRng> Fancy for Garbler<C, RNG> {
         let i = self.current_output();
         let D = self.delta(q);
         for k in 0..q {
-            let block = X.plus(&D.cmul(k)).hash(output_tweak(i, k));
-            self.channel.write_block(&block)?;
+            let tmp = Fr::from(i as u64).add(Fr::from(k as u64));
+            let block = X.plus(&D.cmul(k)).hash(&tmp);
+            self.channel.write_fr(&block)?;
         }
         Ok(None)
     }

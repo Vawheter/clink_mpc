@@ -5,26 +5,29 @@
 // See LICENSE for licensing information.
 
 use crate::{errors::TwopacError, Evaluator as Ev, Fancy, FancyInput, FancyReveal, Wire};
-use ocelot::ot::Receiver as OtReceiver;
+// use ocelot::ot::Receiver as OtReceiver;
+use ocelot::ot::pvw::{Receiver as PVWReceiver, CRS};
 use rand::{CryptoRng, Rng};
 use scuttlebutt::{AbstractChannel, Block, SemiHonest};
+use curve::bn_256::Fr;
+use ocelot::Error;
 
 /// Semi-honest evaluator.
-pub struct Evaluator<C, RNG, OT> {
+pub struct Evaluator<C, RNG> {
     evaluator: Ev<C>,
     channel: C,
-    ot: OT,
+    ot: PVWReceiver,
     rng: RNG,
 }
 
-impl<C, RNG, OT> Evaluator<C, RNG, OT> {}
+impl<C, RNG> Evaluator<C, RNG> {}
 
-impl<C: AbstractChannel, RNG: CryptoRng + Rng, OT: OtReceiver<Msg = Block> + SemiHonest>
-    Evaluator<C, RNG, OT>
+impl<C: AbstractChannel, RNG: CryptoRng + Rng>
+    Evaluator<C, RNG>
 {
     /// Make a new `Evaluator`.
-    pub fn new(mut channel: C, mut rng: RNG) -> Result<Self, TwopacError> {
-        let ot = OT::init(&mut channel, &mut rng)?;
+    pub fn new(mut channel: C, bs: &Vec<bool>, crs: &CRS, mut rng: RNG) -> Result<Self, TwopacError> {
+        let ot = PVWReceiver::init(&mut channel, crs, bs, &mut rng)?;
         let evaluator = Ev::new(channel.clone());
         Ok(Self {
             evaluator,
@@ -39,15 +42,13 @@ impl<C: AbstractChannel, RNG: CryptoRng + Rng, OT: OtReceiver<Msg = Block> + Sem
         &mut self.channel
     }
 
-    fn run_ot(&mut self, inputs: &[bool]) -> Result<Vec<Block>, TwopacError> {
-        self.ot
-            .receive(&mut self.channel, &inputs, &mut self.rng)
-            .map_err(TwopacError::from)
+    fn run_ot(&mut self, bs: &Vec<bool>) -> Result<Vec<Fr>, Error> {
+        self.ot.receive(&mut self.channel, &bs)
     }
 }
 
-impl<C: AbstractChannel, RNG: CryptoRng + Rng, OT: OtReceiver<Msg = Block> + SemiHonest> FancyInput
-    for Evaluator<C, RNG, OT>
+impl<C: AbstractChannel, RNG: CryptoRng + Rng> FancyInput
+    for Evaluator<C, RNG>
 {
     type Item = Wire;
     type Error = TwopacError;
@@ -89,14 +90,14 @@ impl<C: AbstractChannel, RNG: CryptoRng + Rng, OT: OtReceiver<Msg = Block> + Sem
     }
 }
 
-fn combine(wires: &[Block], q: u16) -> Wire {
+fn combine(wires: &[Fr], q: u16) -> Wire {
     wires.iter().enumerate().fold(Wire::zero(q), |acc, (i, w)| {
-        let w = Wire::from_block(*w, q);
+        let w = Wire::from_fr(*w, q);
         acc.plus(&w.cmul(1 << i))
     })
 }
 
-impl<C: AbstractChannel, RNG, OT> Fancy for Evaluator<C, RNG, OT> {
+impl<C: AbstractChannel, RNG> Fancy for Evaluator<C, RNG> {
     type Item = Wire;
     type Error = TwopacError;
 
@@ -129,10 +130,10 @@ impl<C: AbstractChannel, RNG, OT> Fancy for Evaluator<C, RNG, OT> {
     }
 }
 
-impl<C: AbstractChannel, RNG: CryptoRng + Rng, OT> FancyReveal for Evaluator<C, RNG, OT> {
+impl<C: AbstractChannel, RNG: CryptoRng + Rng> FancyReveal for Evaluator<C, RNG> {
     fn reveal(&mut self, x: &Self::Item) -> Result<u16, Self::Error> {
         self.evaluator.reveal(x).map_err(Self::Error::from)
     }
 }
 
-impl<C: AbstractChannel, RNG, OT> SemiHonest for Evaluator<C, RNG, OT> {}
+// impl<C: AbstractChannel, RNG, OT> SemiHonest for Evaluator<C, RNG, OT> {}

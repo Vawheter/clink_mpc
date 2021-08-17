@@ -249,6 +249,11 @@ pub trait AbstractChannel {
     }
 
     #[inline(always)]
+    fn read_frs(&mut self, n: usize) -> Result<Vec<Fr>> {
+        (0..n).map(|_| self.read_fr()).collect()
+    }
+
+    #[inline(always)]
     fn write_fq(&mut self, fq: &Fq) -> Result<()> {
         let mut fq_bytes = vec![];
         fq.write(&mut fq_bytes).unwrap();

@@ -201,11 +201,12 @@ impl Receiver {
     pub fn init<C: AbstractChannel, RNG: CryptoRng + Rng>(
         channel: &mut C,
         crs: &CRS,
-        m: usize,
+        // m: usize,
         bs: &Vec<bool>,
         rng: &mut RNG,
     ) -> Result<Self, Error> {
-        assert_eq!(m, bs.len());
+        // assert_eq!(m, bs.len());
+        let m = bs.len();
         let (pks, sks) = Receiver::KeyGen(&crs, &bs, rng);
         for pk in pks.iter() {
             channel.write_pt(&pk.g)?;

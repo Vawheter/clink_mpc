@@ -8,12 +8,12 @@ use rand::{CryptoRng, Rng};
 use ocelot::{
     Error,
     ot::pvw::{ CRS, SetupMessy as PVW_SetupMessy, Sender as PVW_Sender, Receiver as PVW_Receiver },
-    };
+};
 
 use scuttlebutt::{
     AbstractChannel, Channel,
     hash_mimc::mimc5_hash,
-    };
+};
 
 use core::ops::{Add, Sub, Mul, AddAssign};
 
@@ -172,12 +172,14 @@ impl CotReceiver {
 
     fn init<C: AbstractChannel, RNG: CryptoRng + Rng>(
         channel: & mut C,
-        m: usize,
+        // m: usize,
         bs: Vec<bool>,
         crs: &CRS,
         rng: &mut RNG,
     ) -> Self {
-        let pvw_receiver = PVW_Receiver::init(channel, &crs, m, &bs, rng).unwrap();
+        // let pvw_receiver = PVW_Receiver::init(channel, &crs, m, &bs, rng).unwrap();
+        let pvw_receiver = PVW_Receiver::init(channel, &crs, &bs, rng).unwrap();
+        let m = bs.len();
         Self{ m, bs, pvw_receiver }
     }
 

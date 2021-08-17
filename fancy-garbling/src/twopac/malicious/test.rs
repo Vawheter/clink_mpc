@@ -1,19 +1,19 @@
 use curve::bn_256::Fq;
 use math::{test_rng, 
     One,
-    };
+};
 
 use rand::{CryptoRng, Rng};
 
 use ocelot::{
     Error,
     ot::pvw::{ CRS, SetupMessy as PVW_SetupMessy, Sender as PVW_Sender, Receiver as PVW_Receiver },
-    };
+};
 
 use scuttlebutt::{
     AbstractChannel, Channel,
     hash_mimc::mimc5_hash,
-    };
+};
 
 use core::ops::{Add, Sub, Mul, AddAssign};
 
@@ -90,7 +90,8 @@ fn test_cot()
     let writer = BufWriter::new(receiver);
     let mut channel = Channel::new(reader, writer);
 
-    let mut cot_receiver = CotReceiver::init(&mut channel, m, bs, &crs, &mut rng);
+    // let mut cot_receiver = CotReceiver::init(&mut channel, m, bs, &crs, &mut rng);
+    let mut cot_receiver = CotReceiver::init(&mut channel, bs, &crs, &mut rng);
     
     // OT for (ki_0, ri_0) and (ki_1, ri_1)
     let k_prgs_b  = cot_receiver.receive_ot(&mut channel).unwrap();
